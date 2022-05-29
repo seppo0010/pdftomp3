@@ -3,12 +3,40 @@ import os
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 
 # I'm not sure what's pico2wave's maximum length, empirically looked for a decent value
 MAX_LENGTH = 20000
 
+pdf = sys.stdin.buffer.read()
+process = subprocess.Popen(('pdfinfo', '-meta', '-'), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+process.stdin.write(pdf)
+
+out = process.communicate()[0].decode('utf-8')
+
+root = ET.fromstring(out)
+
+title = ''
+try:
+    title = root.findall('.//dc:title//rdf:li', {
+        'dc': 'http://purl.org/dc/elements/1.1/',
+        'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    })[0].text
+except:
+    pass
+
+author = ''
+try:
+    author = root.findall('.//dc:creator//rdf:li', {
+        'dc': 'http://purl.org/dc/elements/1.1/',
+        'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    })[0].text
+except:
+    pass
+
+
 process = subprocess.Popen(('pdftotext', '-nopgbrk', '-', '-'), stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-process.stdin.write(sys.stdin.buffer.read())
+process.stdin.write(pdf)
 
 outputs = ['']
 buf = ''
@@ -37,7 +65,16 @@ with tempfile.NamedTemporaryFile(suffix='playlist.txt', mode='w', encoding='utf-
         playlist.write("'\n")
     playlist.flush()
 
-    subprocess.check_call(('ffmpeg', '-f', 'concat', '-safe', '0', '-i', playlist.name, '-f', 'mp3', '-'))
+    subprocess.check_call((
+        'ffmpeg',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', playlist.name,
+        '-f', 'mp3',
+        '-metadata', f'artist="{author}"',
+        '-metadata', f'title="{title}"',
+        '-',
+    ))
 
 for wav in wavs:
     os.unlink(wav)
