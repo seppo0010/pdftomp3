@@ -73,7 +73,7 @@ if len(output) == 0:
     process.communicate()
 
     for root, dirs, files in os.walk(htmldir):
-        for name in files:
+        for name in sorted(files):
             if not name.endswith('.png') and not name.endswith('.jpg'):
                 continue
             out = subprocess.check_output(('tesseract', '-l', TESSERACT_LANG, os.path.join(root, name), '-'))
