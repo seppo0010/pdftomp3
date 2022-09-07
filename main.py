@@ -98,8 +98,11 @@ with tempfile.NamedTemporaryFile(suffix='playlist.txt', mode='w', encoding='utf-
         '-safe', '0',
         '-i', playlist.name,
         '-f', 'mp3',
+        ) + ((
         '-metadata', f'artist="{author}"',
+        ) if author != '' else ()) + ((
         '-metadata', f'title="{title}"',
+        ) if title != '' else ()) + (
         '-',
     ))
 
